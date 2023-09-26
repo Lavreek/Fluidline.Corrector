@@ -31,12 +31,12 @@ class HomepageController extends AbstractController
 
         $emailEndings = "";
 
-        if (empty($emailEndings)) {
-            $emailEndings = $defaultEmailEndings;
-        }
-
         if (file_exists($outputPath ."endings.txt")) {
             $emailEndings = file_get_contents($outputPath ."endings.txt");
+        }
+
+        if (empty($emailEndings)) {
+            $emailEndings = $defaultEmailEndings;
         }
 
         if ($csvUploadForm->isSubmitted() and $csvUploadForm->isValid()) {

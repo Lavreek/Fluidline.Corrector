@@ -23,7 +23,6 @@ class DeleteController extends AbstractController
 
             while ($files) {
                 unlink($outputPath . array_shift($files));
-
             }
         }
 
