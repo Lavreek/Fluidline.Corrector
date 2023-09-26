@@ -211,39 +211,4 @@ class EmailCorrector
             mkdir($path, recursive: true);
         }
     }
-
-    /**
-     * Проверяет на окончание ru/com/org, разделяет строку на отдельные email и сравнивает их, удаляет если повторяется
-     * @param $str
-     * @param $pattern
-     * @return array
-     */
-    private function filtration($str, $pattern)
-    {
-        if (stripos($str, ':')) {
-            $pos = stripos($str, ':') + 1;
-            $str = substr($str, $pos);
-        }
-        if (stripos($str, '=')) {
-            $pos = stripos($str, '=') + 1;
-            $str = substr($str, $pos);
-        }
-        preg_match_all($pattern, $str, $match);
-
-        // $foundResultFirst = $match[0];
-        foreach ($match[0] as $matched) {
-            $foundResultFirst[] = trim($matched, '\.\_');
-
-            $str = str_replace($matched, '', $str);
-            $str = trim($matched, '\.\,\_');
-        }
-
-        $notEntered = $str;
-
-        return [
-            'str' => $str,
-            'after_reg_1' => $foundResultFirst ?? false,
-            'did_not_pass_first_reg' => $notEntered ?? false,
-        ];
-    }
 }
