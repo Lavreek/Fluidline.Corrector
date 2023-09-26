@@ -1,3 +1,11 @@
+/.idea
+
+*.log
+
+###> phpunit/phpunit ###
+/phpunit.xml
+.phpunit.result.cache
+###< phpunit/phpunit ###
 
 ###> symfony/framework-bundle ###
 /.env.local
