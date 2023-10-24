@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Form\CSVDeleteType;
 use App\Form\CSVUploadType;
 use App\Services\EmailCorrector;
+use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\Request;
@@ -16,7 +17,7 @@ class HomepageController extends AbstractController
     #[Route('/', name: 'app_root')]
     #[Route('/home', name: 'app_home')]
     #[Route('/homepage', name: 'app_homepage')]
-    public function index(Request $request): Response
+    public function index(Request $request, ManagerRegistry $managerRegistry): Response
     {
         ini_set('memory_limit', '1024M');
         ini_set('max_execution_time', 120);
@@ -26,7 +27,7 @@ class HomepageController extends AbstractController
 
         $deleteForm = $this->createForm(CSVDeleteType::class);
 
-        $outputPath = $this->getParameter('csv_output');
+        $outputPath = $this->getParameter('output');
         $defaultEmailEndings = 'biz|com|edu|info|org|pro|az|by|kg|kz|ru|su|tj|tm|uz';
 
         $emailEndings = "";
@@ -47,12 +48,46 @@ class HomepageController extends AbstractController
 
             $emailEndings = $formData['endings'];
 
-            $corrector = new EmailCorrector();
-            $corrector->setOutputPath($outputPath);
-            $corrector->setFilePath($uploadedFile->getRealPath());
-            $corrector->setOutputOriginName($uploadedFile->getClientOriginalName());
-            $corrector->setEmailsEndings($emailEndings);
-            $corrector->correctEmails();
+            switch ($uploadedFile->getMimeType()) {
+                case 'text/plain' : {
+                    $tmpPath = $this->getParameter('tmp');
+
+                    if (!is_dir($tmpPath)) {
+                        mkdir($tmpPath, recursive: true);
+                    }
+
+                    $fileinfo = pathinfo($uploadedFile->getClientOriginalName());
+                    $filename = $fileinfo['filename'] .".csv";
+
+                    if ($fileinfo['extension'] == "txt") {
+                        $uploadedFile->move($tmpPath, $filename);
+
+                        $this->startProcessing(
+                            $outputPath, $tmpPath . $filename, $filename, $emailEndings,
+                            $managerRegistry->getManager()
+                        );
+                    }
+                    break;
+                }
+
+                case 'text/csv' : {
+                    $this->startProcessing(
+                        $outputPath, $uploadedFile->getRealPath(), $uploadedFile->getClientOriginalName(),
+                        $emailEndings, $managerRegistry->getManager()
+                    );
+                    break;
+                }
+
+                case 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' : {
+                    $tmpPath = $this->getParameter('tmp');
+
+                    if (!is_dir($tmpPath)) {
+                        mkdir($tmpPath, recursive: true);
+                    }
+
+                    break;
+                }
+            }
 
             if ($emailEndings != $defaultEmailEndings) {
                 $endingsFile = $outputPath ."endings.txt";
@@ -72,5 +107,16 @@ class HomepageController extends AbstractController
             'delete_form' => $deleteForm->createView(),
             'upload_form' => $csvUploadForm->createView(),
         ]);
+    }
+
+    private function startProcessing($outputPath, $filePath, $originName, $endings, $objectManager)
+    {
+        $corrector = new EmailCorrector();
+        $corrector->setOutputPath($outputPath);
+        $corrector->setFilePath($filePath);
+        $corrector->setOutputOriginName($originName);
+        $corrector->setEmailsEndings($endings);
+        $corrector->setObjectManager($objectManager);
+        $corrector->correctEmails();
     }
 }

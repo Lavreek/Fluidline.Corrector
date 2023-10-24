@@ -2,6 +2,9 @@
 
 namespace App\Services;
 
+use App\Entity\Validator;
+use Doctrine\Persistence\ObjectManager;
+
 class EmailCorrector
 {
     private string $filePath;
@@ -12,20 +15,27 @@ class EmailCorrector
 
     private string $emailsEndings;
 
-    private string $matchedEmails = "";
-
     private string $wrongEmails = "";
 
     private string $multiEmails = "";
+
+    private ObjectManager $objectManager;
 
     /** @var string $escapeCharacters | Символы, которые необходимо обрезать с двух концов строки */
     private string $escapeCharacters = '\?,\.\SP\!\"\#\$\%\&\(\)\*\+\`\~\,\-\;\:\<\>\=\@';
 
     private array $replaceCharacters = ["​"];
 
-    public function __construct()
-    {
+    public function __construct() { }
 
+    public function setObjectManager(ObjectManager $manager) : void
+    {
+        $this->objectManager = $manager;
+    }
+
+    public function getObjectManager() : ObjectManager
+    {
+        return $this->objectManager;
     }
 
     public function setFilePath(string $path) : void
@@ -79,8 +89,9 @@ class EmailCorrector
         $this->emptyFileEmails($this->getOutputOriginName());
         $this->emptyFileEmails('wrong-'. $this->getOutputOriginName());
         $this->emptyFileEmails('multi-'. $this->getOutputOriginName());
+        $this->emptyFileEmails('problem-'. $this->getOutputOriginName());
 
-        while ($row = fgetcsv($f, separator: "\n")) {
+        while ($row = fgetcsv($f)) {
             $email = trim(array_shift($row), $trim);
             $email = str_replace($this->replaceCharacters, '', $email);
             $count = $this->countOfEmails($email);
@@ -99,14 +110,13 @@ class EmailCorrector
 
         fclose($f);
 
-        $this->writeFileEmails($this->getOutputOriginName(), $this->matchedEmails);
         $this->writeFileEmails("wrong-". $this->getOutputOriginName(), $this->wrongEmails);
         $this->writeFileEmails("multi-". $this->getOutputOriginName(), $this->multiEmails);
     }
 
     private function countOfEmails(string $dataRow) : int
     {
-        preg_match_all('#\@#', $dataRow, $match);
+        preg_match_all('#@#', $dataRow, $match);
 
         if (isset($match[0])) {
             return count($match[0]);
@@ -123,9 +133,9 @@ class EmailCorrector
         preg_match($pattern, $email, $match);
 
         if (isset($match[0])) {
-            $this->appendMatchedEmails($match[0]);
+            $this->pushEmail($match[0]);
         } else {
-            $pattern = "#[\w+|_?|\-?]+\.?+\@([\w+|\.?|\-?]+)\.(\w+)?#u";
+            $pattern = "#[\w+|_?|\-?]+\.?+@([\w+|\.?|\-?]+)\.(\w+)?#u";
 
             preg_match($pattern, $email, $fullEnding);
 
@@ -135,27 +145,18 @@ class EmailCorrector
                 switch ($ending) {
                     case "u": case "r": {
                         $ending = '.ru';
-                        $this->appendMatchedEmails(implode('', $fullEnding));
+                        $this->pushEmail(implode('', $fullEnding));
                         break;
                     }
                     case "c": case "co": {
                         $ending = '.com';
-                        $this->appendMatchedEmails(implode('', $fullEnding));
+                        $this->pushEmail(implode('', $fullEnding));
                         break;
                     }
                 }
             } else {
                 $this->appendWrongEmails($email);
             }
-        }
-    }
-
-    private function appendMatchedEmails($email) : void
-    {
-        $this->matchedEmails .= $email ."\n";
-
-        if (strlen($this->matchedEmails) > (10 * 1024 * 1024)) {
-            $this->writeFileEmails($this->getOutputOriginName(), $this->matchedEmails);
         }
     }
 
@@ -181,11 +182,7 @@ class EmailCorrector
     {
         $outputPath = $this->getOutputPath();
 
-        $written = false;
-
-        while (!$written) {
-            $written = file_put_contents($outputPath . $filename, $content, FILE_APPEND);
-        }
+        file_put_contents($outputPath . $filename, $content, FILE_APPEND);
 
         $content = "";
     }
@@ -210,5 +207,32 @@ class EmailCorrector
         if (!is_dir($path)) {
             mkdir($path, recursive: true);
         }
+    }
+
+    private function pushEmail($email)
+    {
+        /** @var ObjectManager $manager */
+        $manager = $this->getObjectManager();
+
+        $validatorRepository = $manager->getRepository(Validator::class);
+
+        /** @var Validator $validator */
+        $validator = $validatorRepository->findOneBy(['email' => $email]);
+
+        if (is_null($validator)) {
+            $validator = new Validator();
+            $validator->setCreated(new \DateTime());
+            $validator->setEmail($email);
+
+        } else {
+            $validator->setUpdated(new \DateTime());
+        }
+
+        $validator->setSmtpStatus('Unknown');
+
+        $manager->persist($validator);
+
+        $manager->flush();
+        $manager->clear();
     }
 }
