@@ -15,6 +15,8 @@ class EmailCorrector
 
     private string $emailsEndings;
 
+    private string $matchedEmails = "";
+
     private string $wrongEmails = "";
 
     private string $multiEmails = "";
@@ -110,13 +112,14 @@ class EmailCorrector
 
         fclose($f);
 
+        $this->writeFileEmails($this->getOutputOriginName(), $this->matchedEmails);
         $this->writeFileEmails("wrong-". $this->getOutputOriginName(), $this->wrongEmails);
         $this->writeFileEmails("multi-". $this->getOutputOriginName(), $this->multiEmails);
     }
 
     private function countOfEmails(string $dataRow) : int
     {
-        preg_match_all('#@#', $dataRow, $match);
+        preg_match_all('#\@#', $dataRow, $match);
 
         if (isset($match[0])) {
             return count($match[0]);
@@ -133,7 +136,9 @@ class EmailCorrector
         preg_match($pattern, $email, $match);
 
         if (isset($match[0])) {
-            $this->pushEmail($match[0]);
+//            $this->pushEmail($match[0]);
+            $this->appendMatchedEmails($match[0]);
+
         } else {
             $pattern = "#[\w+|_?|\-?]+\.?+@([\w+|\.?|\-?]+)\.(\w+)?#u";
 
@@ -145,18 +150,31 @@ class EmailCorrector
                 switch ($ending) {
                     case "u": case "r": {
                         $ending = '.ru';
-                        $this->pushEmail(implode('', $fullEnding));
-                        break;
+//                        $this->pushEmail(implode('', $fullEnding));
+                        $this->appendMatchedEmails(implode('', $fullEnding));
+
+                    break;
                     }
                     case "c": case "co": {
                         $ending = '.com';
-                        $this->pushEmail(implode('', $fullEnding));
+//                        $this->pushEmail(implode('', $fullEnding));
+                        $this->appendMatchedEmails(implode('', $fullEnding));
+
                         break;
                     }
                 }
             } else {
                 $this->appendWrongEmails($email);
             }
+        }
+    }
+
+    private function appendMatchedEmails($email) : void
+    {
+        $this->matchedEmails .= $email ."\n";
+
+        if (strlen($this->matchedEmails) > (10 * 1024 * 1024)) {
+            $this->writeFileEmails($this->getOutputOriginName(), $this->matchedEmails);
         }
     }
 

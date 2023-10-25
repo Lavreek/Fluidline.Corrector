@@ -19,8 +19,8 @@ class HomepageController extends AbstractController
     #[Route('/homepage', name: 'app_homepage')]
     public function index(Request $request, ManagerRegistry $managerRegistry): Response
     {
-        ini_set('memory_limit', '1024M');
-        ini_set('max_execution_time', 120);
+        ini_set('memory_limit', '10240M');
+        ini_set('max_execution_time', 1200);
 
         $csvUploadForm = $this->createForm(CSVUploadType::class);
         $csvUploadForm->handleRequest($request);
