@@ -7,6 +7,7 @@ parameters:
     log: '%kernel.project_dir%/var/log/op.log'
     tmp: '%kernel.project_dir%/public/tmp/'
     output: '%kernel.project_dir%/public/output/'
+    serialized: '%kernel.project_dir%/serialized/'
 
 services:
     # default configuration for services in *this* file

@@ -28,7 +28,18 @@ class EmailCorrector
 
     private array $replaceCharacters = ["​"];
 
-    public function __construct() { }
+    private string $serializedPath;
+
+    public function getSerializedPath() : string
+    {
+        return $this->serializedPath;
+    }
+
+    public function setSerializedPath(string $path) : void
+    {
+        $this->serializedPath = $path;
+    }
+
 
     public function setObjectManager(ObjectManager $manager) : void
     {
@@ -136,7 +147,7 @@ class EmailCorrector
         preg_match($pattern, $email, $match);
 
         if (isset($match[0])) {
-//            $this->pushEmail($match[0]);
+            $this->pushEmail($match[0]);
             $this->appendMatchedEmails($match[0]);
 
         } else {
@@ -150,14 +161,14 @@ class EmailCorrector
                 switch ($ending) {
                     case "u": case "r": {
                         $ending = '.ru';
-//                        $this->pushEmail(implode('', $fullEnding));
+                        $this->pushEmail(implode('', $fullEnding));
                         $this->appendMatchedEmails(implode('', $fullEnding));
 
                     break;
                     }
                     case "c": case "co": {
                         $ending = '.com';
-//                        $this->pushEmail(implode('', $fullEnding));
+                        $this->pushEmail(implode('', $fullEnding));
                         $this->appendMatchedEmails(implode('', $fullEnding));
 
                         break;
@@ -227,8 +238,10 @@ class EmailCorrector
         }
     }
 
-    private function pushEmail($email)
+    private function pushEmail($email) : void
     {
+        $serializedPath = $this->getSerializedPath();
+
         /** @var ObjectManager $manager */
         $manager = $this->getObjectManager();
 
@@ -248,9 +261,6 @@ class EmailCorrector
 
         $validator->setSmtpStatus('Unknown');
 
-        $manager->persist($validator);
-
-        $manager->flush();
-        $manager->clear();
+        file_put_contents($serializedPath . uniqid(), serialize($validator));
     }
 }

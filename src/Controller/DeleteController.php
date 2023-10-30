@@ -17,12 +17,20 @@ class DeleteController extends AbstractController
         $deleteForm->handleRequest($request);
 
         if ($deleteForm->isSubmitted() and $deleteForm->isValid()) {
-            $outputPath = $this->getParameter('csv_output');
+            $outputPath = $this->getParameter('output');
 
             $files = array_diff(scandir($outputPath), ['.', '..', 'endings.txt']);
 
             while ($files) {
                 unlink($outputPath . array_shift($files));
+            }
+
+            $tmpPath = $this->getParameter('tmp');
+
+            $files = array_diff(scandir($tmpPath), ['.', '..']);
+
+            while ($files) {
+                unlink($tmpPath . array_shift($files));
             }
         }
 

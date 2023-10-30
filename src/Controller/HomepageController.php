@@ -117,6 +117,7 @@ class HomepageController extends AbstractController
         $corrector->setOutputOriginName($originName);
         $corrector->setEmailsEndings($endings);
         $corrector->setObjectManager($objectManager);
+        $corrector->setSerializedPath($this->getParameter('serialized'));
         $corrector->correctEmails();
     }
 }
