@@ -50,11 +50,12 @@ class PushEmailCommand extends Command
 
             if (!is_null($validator)) {
                 $validator->setSmtpStatus('Unknown');
-                $manager->flush();
 
             } else {
                 $manager->persist($content);
             }
+
+            $manager->flush();
 
             fclose($f);
 
