@@ -13,7 +13,7 @@ use Symfony\Component\Console\Output\OutputInterface;
     name: 'ValidEmail',
     description: 'Add a short description for your command',
 )]
-class ValidEmailCommand extends Command
+final class ValidEmailCommand extends Command
 {
     public function __construct()
     {

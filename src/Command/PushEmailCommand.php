@@ -13,7 +13,7 @@ use Symfony\Component\Console\Output\OutputInterface;
     name: 'PushEmail',
     description: 'Add a short description for your command',
 )]
-class PushEmailCommand extends Command
+final class PushEmailCommand extends Command
 {
     public function __construct()
     {
@@ -36,6 +36,8 @@ class PushEmailCommand extends Command
         $f = fopen($serializedPath . $file, 'r');
 
         if (flock($f, LOCK_EX | LOCK_NB, $would_block)) {
+            echo "Использую файл: $file\n";
+
             /** @var Validator $content */
             $content = unserialize(stream_get_contents($f));
 
@@ -50,6 +52,7 @@ class PushEmailCommand extends Command
 
             if (!is_null($validator)) {
                 $validator->setSmtpStatus('Unknown');
+                $validator->setUpdated(new \DateTime());
 
             } else {
                 $manager->persist($content);
@@ -65,7 +68,7 @@ class PushEmailCommand extends Command
         }
 
         if ($would_block) {
-            echo "Другой процесс уже удерживает блокировку файла";
+            echo "Другой процесс уже удерживает блокировку файла\n";
         }
 
         return Command::SUCCESS;

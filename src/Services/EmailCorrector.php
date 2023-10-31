@@ -40,7 +40,6 @@ class EmailCorrector
         $this->serializedPath = $path;
     }
 
-
     public function setObjectManager(ObjectManager $manager) : void
     {
         $this->objectManager = $manager;
