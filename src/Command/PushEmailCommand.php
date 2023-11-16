@@ -31,40 +31,40 @@ final class PushEmailCommand extends Command
         $difference = ['.', '..', '.gitignore'];
         $files = array_diff(scandir($serializedPath), $difference);
 
-        $file = array_shift($files);
+        for ($i = 0; $i < 20; $i++) {
+            $file = array_shift($files);
 
-        $f = fopen($serializedPath . $file, 'r');
+            $f = fopen($serializedPath . $file, 'r');
 
-        if (flock($f, LOCK_EX | LOCK_NB, $would_block)) {
-            echo "Использую файл: $file\n";
+            if (flock($f, LOCK_EX | LOCK_NB, $would_block)) {
+                echo "Использую файл: $file\n";
 
-            /** @var Validator $content */
-            $content = unserialize(stream_get_contents($f));
+                /** @var Validator $content */
+                $content = unserialize(stream_get_contents($f));
 
-            /** @var ManagerRegistry $doctrine */
-            $doctrine = $container->get('doctrine');
+                /** @var ManagerRegistry $doctrine */
+                $doctrine = $container->get('doctrine');
 
-            $manager = $doctrine->getManager();
+                $manager = $doctrine->getManager();
 
-            /** @var Validator $validator */
-            $validator = $manager->getRepository(Validator::class)
-                ->findOneBy(['email' => $content->getEmail()]);
+                /** @var Validator $validator */
+                $validator = $manager->getRepository(Validator::class)
+                    ->findOneBy(['email' => $content->getEmail()]);
 
-            if (!is_null($validator)) {
-                $validator->setSmtpStatus('Unknown');
-                $validator->setUpdated(new \DateTime());
+                if (!is_null($validator)) {
+                    $validator->setSmtpStatus('Unknown');
+                    $validator->setUpdated(new \DateTime());
 
-            } else {
-                $manager->persist($content);
+                } else {
+                    $manager->persist($content);
+                }
+
+                $manager->flush();
+
+                fclose($f);
+
+                unlink($serializedPath . $file);
             }
-
-            $manager->flush();
-
-            fclose($f);
-
-            unlink($serializedPath . $file);
-
-            return Command::SUCCESS;
         }
 
         if ($would_block) {

@@ -19,7 +19,6 @@ class HomepageController extends AbstractController
     #[Route('/homepage', name: 'app_homepage')]
     public function index(Request $request, ManagerRegistry $managerRegistry): Response
     {
-        ini_set('memory_limit', '10240M');
         ini_set('max_execution_time', 1200);
 
         $csvUploadForm = $this->createForm(CSVUploadType::class);
@@ -57,16 +56,16 @@ class HomepageController extends AbstractController
                     }
 
                     $fileinfo = pathinfo($uploadedFile->getClientOriginalName());
+
                     $filename = $fileinfo['filename'] .".csv";
 
-                    if ($fileinfo['extension'] == "txt") {
-                        $uploadedFile->move($tmpPath, $filename);
+                    $uploadedFile->move($tmpPath, $filename);
 
-                        $this->startProcessing(
-                            $outputPath, $tmpPath . $filename, $filename, $emailEndings,
-                            $managerRegistry->getManager()
-                        );
-                    }
+                    $this->startProcessing(
+                        $outputPath, $tmpPath . $filename, $filename, $emailEndings,
+                        $managerRegistry->getManager()
+                    );
+
                     break;
                 }
 

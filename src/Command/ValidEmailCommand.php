@@ -33,22 +33,24 @@ final class ValidEmailCommand extends Command
 
         $validatorRepository = $manager->getRepository(Validator::class);
 
-        /** @var Validator $validator */
-        $validator = $validatorRepository->findOneBy(['smtp_status' => "Unknown"]);
+        for ($i = 0; $i < 20; $i++) {
+            /** @var Validator $validator */
+            $validator = $validatorRepository->findOneBy(['smtp_status' => "Unknown"]);
 
-        if (!is_null($validator)) {
-            $email = $validator->getEmail();
+            if (!is_null($validator)) {
+                $email = $validator->getEmail();
 
-            if ($this->validateEmailSMTP($email)) {
-                $validator->setSmtpStatus('Active');
+                if ($this->validateEmailSMTP($email)) {
+                    $validator->setSmtpStatus('Active');
 
-            } else {
-                $validator->setSmtpStatus('Not active');
+                } else {
+                    $validator->setSmtpStatus('Not active');
+                }
+
+                $validator->setUpdated(new \DateTime());
+                $manager->persist($validator);
+                $manager->flush();
             }
-
-            $validator->setUpdated(new \DateTime());
-            $manager->persist($validator);
-            $manager->flush();
         }
 
         return Command::SUCCESS;
