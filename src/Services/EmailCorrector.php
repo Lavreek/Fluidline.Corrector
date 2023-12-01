@@ -94,6 +94,8 @@ class EmailCorrector
     {
         $filepath = $this->getFilePath();
 
+        $fileinfo = pathinfo($filepath);
+
         $f = fopen($filepath, 'r');
 
         $trim = $this->escapeCharacters;
@@ -110,7 +112,7 @@ class EmailCorrector
 
             if ($count > 0) {
                 if ($count === 1) {
-                    $this->matchEmail($email);
+                    $this->matchEmail($email, $fileinfo['filename']);
 
                 } elseif ($count > 1) {
                     $this->appendMultiEmails($email);
@@ -138,7 +140,7 @@ class EmailCorrector
         return 0;
     }
 
-    private function matchEmail($email) : void
+    private function matchEmail($email, $listname) : void
     {
         $emailEndings = $this->getEmailEndings();
         $pattern = "#[\w+_\.\+\-\?\']+@([\w+.-]+?)\.({$emailEndings})#u";
@@ -146,7 +148,7 @@ class EmailCorrector
         preg_match($pattern, $email, $match);
 
         if (isset($match[0])) {
-            $this->pushEmail($match[0]);
+            $this->pushEmail($match[0], $listname);
             $this->appendMatchedEmails($match[0]);
 
         } else {
@@ -160,14 +162,14 @@ class EmailCorrector
                 switch ($ending) {
                     case "u": case "r": {
                         $ending = '.ru';
-                        $this->pushEmail(implode('', $fullEnding));
+                        $this->pushEmail(implode('', $fullEnding), $listname);
                         $this->appendMatchedEmails(implode('', $fullEnding));
 
                     break;
                     }
                     case "c": case "co": {
                         $ending = '.com';
-                        $this->pushEmail(implode('', $fullEnding));
+                        $this->pushEmail(implode('', $fullEnding), $listname);
                         $this->appendMatchedEmails(implode('', $fullEnding));
 
                         break;
@@ -237,7 +239,7 @@ class EmailCorrector
         }
     }
 
-    private function pushEmail($email) : void
+    private function pushEmail($email, $listname) : void
     {
         $serializedPath = $this->getSerializedPath();
 
@@ -253,6 +255,8 @@ class EmailCorrector
             $validator = new Validator();
             $validator->setCreated(new \DateTime());
             $validator->setEmail($email);
+            $validator->setMultiMailing(false);
+            $validator->setList($listname);
 
         } else {
             $validator->setUpdated(new \DateTime());
@@ -260,6 +264,12 @@ class EmailCorrector
 
         $validator->setSmtpStatus('Unknown');
 
-        file_put_contents($serializedPath . uniqid(), serialize($validator));
+        $listpath = $serializedPath . $listname . "/";
+
+        if (!is_dir($listpath)) {
+            mkdir($listpath, recursive: true);
+        }
+
+        file_put_contents($listpath . uniqid(), serialize($validator));
     }
 }

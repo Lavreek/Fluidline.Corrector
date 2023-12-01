@@ -28,47 +28,80 @@ final class PushEmailCommand extends Command
 
         $serializedPath = $container->getParameter('serialized');
 
-        $difference = ['.', '..', '.gitignore'];
-        $files = array_diff(scandir($serializedPath), $difference);
+        $difference = ['', '.', '..', '.gitignore'];
 
-        for ($i = 0; $i < 20; $i++) {
-            $file = array_shift($files);
+        $lists = array_diff(scandir($serializedPath), $difference);
 
-            $f = fopen($serializedPath . $file, 'r');
+        foreach ($lists as $list) {
+            $listpath = $serializedPath . $list . "/";
 
-            if (flock($f, LOCK_EX | LOCK_NB, $would_block)) {
-                echo "Использую файл: $file\n";
+            $files = array_diff(scandir($listpath), $difference);
 
-                /** @var Validator $content */
-                $content = unserialize(stream_get_contents($f));
+            if (empty($files)) {
+                rmdir($serializedPath . $list);
+            }
 
-                /** @var ManagerRegistry $doctrine */
-                $doctrine = $container->get('doctrine');
+            for ($i = 0; $i < 2500; $i++) {
+                $file = array_shift($files);
 
-                $manager = $doctrine->getManager();
-
-                /** @var Validator $validator */
-                $validator = $manager->getRepository(Validator::class)
-                    ->findOneBy(['email' => $content->getEmail()]);
-
-                if (!is_null($validator)) {
-                    $validator->setSmtpStatus('Unknown');
-                    $validator->setUpdated(new \DateTime());
-
-                } else {
-                    $manager->persist($content);
+                if (!$file) {
+                    break;
                 }
 
-                $manager->flush();
+                $f = fopen($listpath . $file, 'r');
 
-                fclose($f);
+                if (flock($f, LOCK_EX | LOCK_NB, $would_block)) {
+                    echo "Использую файл: $list - $file\n";
 
-                unlink($serializedPath . $file);
+                    /** @var Validator $content */
+                    $content = unserialize(stream_get_contents($f));
+
+                    /** @var ManagerRegistry $doctrine */
+                    $doctrine = $container->get('doctrine');
+
+                    $manager = $doctrine->getManager();
+
+                    /** @var Validator $validator */
+                    $validator = $manager->getRepository(Validator::class)
+                        ->findOneBy(['email' => $content->getEmail()]);
+
+                    if (!is_null($validator)) {
+                        if ($validator->getList() != $list) {
+                            $validator->setList($list);
+                        }
+
+                        if (is_null($validator->isMultiMailing())) {
+                            $validator->setMultiMailing(false);
+                        }
+
+                        $validator->setSmtpStatus('Unknown');
+                        $validator->setUpdated(new \DateTime());
+
+                    } else {
+                        if ($content->getList() != $list) {
+                            $content->setList($list);
+                        }
+
+                        if (is_null($content->isMultiMailing())) {
+                            $content->setMultiMailing(false);
+                        }
+
+                        $manager->persist($content);
+                    }
+
+                    $manager->flush();
+
+                    fclose($f);
+
+                    unlink($listpath . $file);
+                }
             }
-        }
 
-        if ($would_block) {
-            echo "Другой процесс уже удерживает блокировку файла\n";
+            if (isset($would_block)) {
+                if ($would_block) {
+                    echo "Другой процесс уже удерживает блокировку файла\n";
+                }
+            }
         }
 
         return Command::SUCCESS;

@@ -26,6 +26,15 @@ class Validator
     #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
     private ?\DateTimeInterface $updated = null;
 
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $list = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?bool $multi_mailing = null;
+
+    #[ORM\Column(type: Types::SMALLINT, nullable: true)]
+    private ?int $priority = null;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -75,6 +84,42 @@ class Validator
     public function setUpdated(?\DateTimeInterface $updated): static
     {
         $this->updated = $updated;
+
+        return $this;
+    }
+
+    public function getList(): ?string
+    {
+        return $this->list;
+    }
+
+    public function setList(?string $list): static
+    {
+        $this->list = $list;
+
+        return $this;
+    }
+
+    public function isMultiMailing(): ?bool
+    {
+        return $this->multi_mailing;
+    }
+
+    public function setMultiMailing(?bool $multi_mailing): static
+    {
+        $this->multi_mailing = $multi_mailing;
+
+        return $this;
+    }
+
+    public function getPriority(): ?int
+    {
+        return $this->priority;
+    }
+
+    public function setPriority(?int $priority): static
+    {
+        $this->priority = $priority;
 
         return $this;
     }

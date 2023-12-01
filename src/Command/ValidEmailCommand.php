@@ -35,14 +35,21 @@ final class ValidEmailCommand extends Command
 
         for ($i = 0; $i < 20; $i++) {
             /** @var Validator $validator */
-            $validator = $validatorRepository->findOneBy(['smtp_status' => "Unknown"]);
+            $validator = $validatorRepository->findOneBy(['smtp_status' => "Unknown"], ['priority' => 'DESC']);
 
             if (!is_null($validator)) {
                 $email = $validator->getEmail();
 
+                echo "Использую почту: $email\n";
+
                 if ($this->validateEmailSMTP($email)) {
                     $validator->setSmtpStatus('Active');
 
+                    [$name, $domain] = explode('@', $email, 2);
+
+                    if ($this->validateEmailSMTP(uniqid() ."@". $domain)) {
+                        $validator->setMultiMailing(true);
+                    }
                 } else {
                     $validator->setSmtpStatus('Not active');
                 }

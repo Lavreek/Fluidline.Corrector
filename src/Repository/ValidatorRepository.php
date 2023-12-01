@@ -20,7 +20,35 @@ class ValidatorRepository extends ServiceEntityRepository
     {
         parent::__construct($registry, Validator::class);
     }
+    
+   /**
+    * @return Validator[] Returns an array of Validator objects
+    */
+   public function findByExampleField($value): array
+   {
+       return $this->createQueryBuilder('v')
+           ->andWhere('v.exampleField = :val')
+           ->setParameter('val', $value)
+           ->orderBy('v.id', 'ASC')
+           ->setMaxResults(10)
+           ->getQuery()
+           ->getResult()
+       ;
+   }
 
+    /**
+     * @return Validator[] Returns an array of Validator objects
+     */
+    public function getValidatorList(): array
+    {
+        return $this->createQueryBuilder('v')
+            ->distinct()
+            ->select('v.list')
+            ->getQuery()
+            ->getResult()
+        ;
+    }
+    
 //    /**
 //     * @return Validator[] Returns an array of Validator objects
 //     */

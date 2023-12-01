@@ -11,6 +11,8 @@ use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
+use App\Entity\Validator;
+use App\Repository\ValidatorRepository;
 
 class HomepageController extends AbstractController
 {
@@ -19,6 +21,9 @@ class HomepageController extends AbstractController
     #[Route('/homepage', name: 'app_homepage')]
     public function index(Request $request, ManagerRegistry $managerRegistry): Response
     {
+        /** @var ValidatorRepository $validator */
+        $validator = $managerRegistry->getRepository(Validator::class);
+        
         ini_set('max_execution_time', 1200);
 
         $csvUploadForm = $this->createForm(CSVUploadType::class);
@@ -98,7 +103,14 @@ class HomepageController extends AbstractController
             }
         }
 
-        $files = array_diff(scandir($outputPath), ['.', '..']);
+        $files = [];
+
+        if (is_dir($outputPath)) {
+            $files = array_diff(scandir($outputPath), ['.', '..']);
+
+        } else {
+            mkdir($outputPath, recursive: true);
+        }
 
         return $this->render('homepage/index.html.twig', [
             'upload_files' => $files,
