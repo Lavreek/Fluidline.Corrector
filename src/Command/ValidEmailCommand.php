@@ -3,6 +3,7 @@
 namespace App\Command;
 
 use App\Entity\Validator;
+use App\Repository\ValidatorRepository;
 use Symfony\Bridge\Doctrine\ManagerRegistry;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -20,8 +21,6 @@ final class ValidEmailCommand extends Command
         parent::__construct();
     }
 
-    protected function configure() : void { }
-
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $container = $this->getApplication()->getKernel()->getContainer();
@@ -31,9 +30,10 @@ final class ValidEmailCommand extends Command
 
         $manager = $doctrine->getManager();
 
+        /** @var ValidatorRepository $validatorRepository */
         $validatorRepository = $manager->getRepository(Validator::class);
 
-        for ($i = 0; $i < 20; $i++) {
+        for ($i = 0; $i < 200; $i++) {
             /** @var Validator $validator */
             $validator = $validatorRepository->findOneBy(['smtp_status' => "Unknown"], ['priority' => 'DESC']);
 
@@ -49,6 +49,7 @@ final class ValidEmailCommand extends Command
 
                     if ($this->validateEmailSMTP(uniqid() ."@". $domain)) {
                         $validator->setMultiMailing(true);
+                        $validatorRepository->setActiveMultiMailing($domain);
                     }
                 } else {
                     $validator->setSmtpStatus('Not active');
@@ -66,20 +67,28 @@ final class ValidEmailCommand extends Command
     private function validateEmailSMTP($email) : bool
     {
         $domain = substr(strrchr($email, "@"), 1);
-        $records = dns_get_record($domain, DNS_MX);
 
-        if(empty($records)) {
+        try {
+            $records = dns_get_record($domain, DNS_MX);
+
+        } catch (\Exception | \Throwable) {
+            return false;
+        }
+
+
+        if (empty($records)) {
             return false;
         }
 
         $mxServers = array();
-        foreach($records as $record) {
+
+        foreach ($records as $record) {
             $mxServers[] = $record['target'];
         }
 
         $valid = false;
 
-        foreach($mxServers as $mxServer) {
+        foreach ($mxServers as $mxServer) {
             $socket = @fsockopen($mxServer, 25, $errno, $error_message, 10);
 
             if (!$socket) {

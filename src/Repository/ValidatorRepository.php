@@ -24,13 +24,13 @@ class ValidatorRepository extends ServiceEntityRepository
    /**
     * @return Validator[] Returns an array of Validator objects
     */
-   public function findByExampleField($value): array
+   public function setActiveMultiMailing($value): array
    {
        return $this->createQueryBuilder('v')
-           ->andWhere('v.exampleField = :val')
-           ->setParameter('val', $value)
-           ->orderBy('v.id', 'ASC')
-           ->setMaxResults(10)
+           ->set('smtp_status', 'Active')
+           ->set('multi_mailing', '1')
+           ->andWhere('v.email like :val')
+           ->setParameter('val', "%$value%")
            ->getQuery()
            ->getResult()
        ;

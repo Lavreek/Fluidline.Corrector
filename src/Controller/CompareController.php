@@ -18,11 +18,28 @@ class CompareController extends AbstractController
     #[Route('/compare', name: 'app_compare')]
     public function index(Request $request, ManagerRegistry $managerRegistry): Response
     {
+        /**
+         * ToDo: Нужно сделать сравнение, существует ли в базе почта, если её нет, создать строку:
+         * example1@examole.com EOL
+         * example3@example.com EOL
+         *
+         * EOL - end of line -> \n
+         * Убирать пробелы с концов trim()
+         * Результат отправки файла в форме: Response в виде файла
+         *
+         *     Скорее всего, суть задачи заключается в том, чтобы получить список новых email'ов, чтобы делать
+         * чтобы делать действительную аналитику списка т.е. сколько действительно новых почт существует в списке.
+         *
+         *     Проверку на валидацию делать не нужно, это должны делать сами аналитики. Если они не смогли этого сделать,
+         * на главной странице app_root если форма для загрузки новых почт, там сразу и валидация и добавление.
+         *
+         *     Сохранять файлы не нужно, процесс работы таков: Отправляем список, получаем файл со списком из несуществующих
+         * в системе почт.
+         */
+
         /** @var ValidatorRepository $validator */
         $validator = $managerRegistry->getRepository(Validator::class);
         
-        ini_set('max_execution_time', 1200);
-
         $csvCompareForm = $this->createForm(CSVCompareType::class);
         $csvCompareForm->handleRequest($request);
         $outputPath = $this->getParameter('output');

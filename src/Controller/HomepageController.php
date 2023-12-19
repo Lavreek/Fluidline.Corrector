@@ -23,8 +23,6 @@ class HomepageController extends AbstractController
     {
         /** @var ValidatorRepository $validator */
         $validator = $managerRegistry->getRepository(Validator::class);
-        
-        ini_set('max_execution_time', 1200);
 
         $csvUploadForm = $this->createForm(CSVUploadType::class);
         $csvUploadForm->handleRequest($request);
