@@ -56,14 +56,7 @@ class DbCompare
         $validator = $validatorRepository->findOneBy(['email' => $email]);
 
         if (is_null($validator)) {
-            $validator = new Validator();
-            $validator->setCreated(new \DateTime());
-            $validator->setEmail($email);
-            $listpath = $serializedPath . $listname . "/";
-            if (!is_dir($listpath)) {
-                mkdir($listpath, recursive: true);
-            }
-            file_put_contents($listpath . uniqid(), serialize($validator));
+            file_put_contents($serializedPath . $listname . ".csv", $email . PHP_EOL, FILE_APPEND);
         }
     }
 
@@ -79,6 +72,28 @@ class DbCompare
             $this->compareEmails($row[0], $fileinfo['filename']);
         }
         fclose($f);
-
+        $newFilePath = $this->serializedPath . $fileinfo['filename'] . ".csv";
+        $this->forceDownload($newFilePath);
+        
     }
+
+    private function forceDownload($file)
+    {
+        if (file_exists($file)) {
+          if (ob_get_level()) {
+            ob_end_clean();
+          }
+          header('Content-Description: File Transfer');
+          header('Content-Type: application/octet-stream');
+          header('Content-Disposition: attachment; filename=' . basename($file));
+          header('Content-Transfer-Encoding: binary');
+          header('Expires: 0');
+          header('Cache-Control: must-revalidate');
+          header('Pragma: public');
+          header('Content-Length: ' . filesize($file));
+          readfile($file);
+          unlink($file);
+          exit;
+        }
+      }
 }

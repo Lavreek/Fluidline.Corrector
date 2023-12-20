@@ -110,7 +110,7 @@ class CompareController extends AbstractController
     private function startComparing($filePath, $manager)
     {
         $compare = new DbCompare();
-        $compare->setSerializedPath($this->getParameter('serialized'));
+        $compare->setSerializedPath($this->getParameter('output'));
         $compare->setObjectManager($manager);
         $compare->setFilePath($filePath);
         $compare->correctEmails();
